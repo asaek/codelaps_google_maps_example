@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:location/location.dart';
-import 'package:permission_handler/permission_handler.dart';
+
 import '/models/locations.dart' as locations;
 
 class MapaScreen extends StatefulWidget {
@@ -20,6 +19,11 @@ class _MapaScreenState extends State<MapaScreen> {
   // void _onMapCreated(GoogleMapController controller) {
   //   mapController = controller;
   // }
+
+  static final CameraPosition initialLocation = CameraPosition(
+    target: LatLng(17.966967791336323, -102.21190559219804),
+    zoom: 18,
+  );
 
   final Map<String, Marker> _markers = {};
 
@@ -49,7 +53,7 @@ class _MapaScreenState extends State<MapaScreen> {
     // await Future.delayed(const Duration(milliseconds: 1000));
 
     super.initState();
-    requestPermissionPositionGPS();
+    // requestPermissionPositionGPS();
     // setState(() {
     //   // getLocationPermission();
 
@@ -71,10 +75,7 @@ class _MapaScreenState extends State<MapaScreen> {
     return Scaffold(
       body: GoogleMap(
         onMapCreated: _onMapCreated,
-        initialCameraPosition: const CameraPosition(
-          target: LatLng(0, 0),
-          zoom: 2,
-        ),
+        initialCameraPosition: initialLocation,
         markers: _markers.values.toSet(),
         compassEnabled: true,
         mapType: MapType.normal,
@@ -85,17 +86,17 @@ class _MapaScreenState extends State<MapaScreen> {
   }
 }
 
-getLocationPermission() async {
-  Location location = Location();
-  try {
-    location.requestPermission(); //to lunch location permission popup
-  } on PlatformException catch (e) {
-    if (e.code == 'PERMISSION_DENIED') {
-      print('-----------------------------------------Permission denied');
-    }
-  }
-}
+// getLocationPermission() async {
+//   Location location = Location();
+//   try {
+//     location.requestPermission(); //to lunch location permission popup
+//   } on PlatformException catch (e) {
+//     if (e.code == 'PERMISSION_DENIED') {
+//       print('-----------------------------------------Permission denied');
+//     }
+//   }
+// }
 
-Future<void> requestPermissionPositionGPS() async {
-  await Permission.location.request();
-}
+// Future<void> requestPermissionPositionGPS() async {
+//   await Permission.location.request();
+// }
