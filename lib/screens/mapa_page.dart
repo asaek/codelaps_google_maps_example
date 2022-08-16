@@ -19,11 +19,9 @@ class _MapaScreenState extends State<MapaScreen> {
   StreamSubscription? _locationSubscription;
   late GoogleMapController mapController;
   Location _location = Location();
+  static LatLng? _posicionInicial;
 
-  static CameraPosition initialLocation = CameraPosition(
-    target: LatLng(17.966967791336323, -102.21190559219804),
-    zoom: 18,
-  );
+  static CameraPosition? initialLocation;
 
   final Map<String, Marker> _markers = {};
 
@@ -52,26 +50,37 @@ class _MapaScreenState extends State<MapaScreen> {
   }
 
   void getCameraLocation() async {
-    _locationSubscription =
-        _location.onLocationChanged.listen(((changePositionEvent) {
-      mapController.animateCamera(
-        CameraUpdate.newCameraPosition(
-          CameraPosition(
-            bearing: 192.8334901395799,
-            tilt: 0,
-            zoom: 18,
-            target: LatLng(
-              changePositionEvent.latitude!,
-              changePositionEvent.longitude!,
+    _locationSubscription = _location.onLocationChanged.listen(
+      ((changePositionEvent) {
+        mapController.animateCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(
+              bearing: 192.8334901395799,
+              tilt: 0,
+              zoom: 18,
+              target: LatLng(
+                changePositionEvent.latitude!,
+                changePositionEvent.longitude!,
+              ),
             ),
           ),
-        ),
-      );
-    }));
+        );
+      }),
+    );
+  }
+
+  void _getUserLocation() async {
+    final LocationData _positionUser = await _location.getLocation();
+    setState(() {
+      _posicionInicial =
+          LatLng(_positionUser.latitude!, _positionUser.longitude!);
+    });
   }
 
   @override
   void initState() {
+    Provider.of<HubicacionPermisoProvider>(context, listen: false)
+        .LocationPermisssion();
     super.initState();
   }
 
@@ -95,13 +104,20 @@ class _MapaScreenState extends State<MapaScreen> {
         Provider.of<HubicacionPermisoProvider>(context, listen: true)
             .getActulizarMapa;
 
-    if (permiso == false) {
-      Provider.of<HubicacionPermisoProvider>(context, listen: false)
-          .LocationPermisssion();
+    if (permiso == true) {
+      if (_posicionInicial == null) {
+        _getUserLocation();
+      }
+
+      // Provider.of<HubicacionPermisoProvider>(context, listen: false)
+      //     .LocationPermisssion();
+    } else {
+      // getCameraLocation();
+      // _locationSubscription!.pause();
     }
 
     return Scaffold(
-      body: (permiso == false)
+      body: (permiso == false || _posicionInicial == null)
           ? SafeArea(
               child: Column(
                 children: [
@@ -147,7 +163,6 @@ class _MapaScreenState extends State<MapaScreen> {
                     height: 100,
                     width: 100,
                     child: CircularProgressIndicator(
-                      color: Color.fromARGB(255, 0, 0, 0),
                       strokeWidth: 5,
                     ),
                   ),
@@ -156,20 +171,40 @@ class _MapaScreenState extends State<MapaScreen> {
             )
           : GoogleMap(
               onMapCreated: _onMapCreated,
-              initialCameraPosition: initialLocation,
+              initialCameraPosition: CameraPosition(
+                target: _posicionInicial!,
+                zoom: 18,
+              ),
               markers: _markers.values.toSet(),
               compassEnabled: true,
               mapType: MapType.normal,
               myLocationEnabled: true,
-              myLocationButtonEnabled: true,
+              // myLocationButtonEnabled: true,
             ),
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(right: 50),
         child: FloatingActionButton(
           backgroundColor: Colors.black,
-          child: const Icon(Icons.navigation),
+          child: const Icon(
+            Icons.center_focus_strong,
+            size: 33,
+          ),
           onPressed: () async {
-            getCameraLocation();
+            final bool switchUbicacion =
+                Provider.of<HubicacionPermisoProvider>(context, listen: false)
+                    .getswitchActivacionUbicacion;
+
+            if (switchUbicacion) {
+              getCameraLocation();
+              Provider.of<HubicacionPermisoProvider>(context, listen: false)
+                  .setSwitchActivacionUbicacion = false;
+            } else {
+              // _locationSubscription?.cancel();
+              _locationSubscription!.pause();
+              Provider.of<HubicacionPermisoProvider>(context, listen: false)
+                  .setSwitchActivacionUbicacion = true;
+            }
+
             // LocationData localizacion = await _location.getLocation();
             // print(
             //     'Las coordenadas son ${localizacion.latitude} --- ${localizacion.longitude}');

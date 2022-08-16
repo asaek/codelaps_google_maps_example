@@ -9,6 +9,12 @@ class HubicacionPermisoProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  bool _switchActivacionUbicacion = true;
+  bool get getswitchActivacionUbicacion => _switchActivacionUbicacion;
+  set setSwitchActivacionUbicacion(bool dato) {
+    _switchActivacionUbicacion = dato;
+  }
+
   Future LocationPermisssion() async {
     Location location = Location();
 
@@ -20,3 +26,23 @@ class HubicacionPermisoProvider with ChangeNotifier {
     }
   }
 }
+
+// void getCameraLocation({required Location location}) async {
+//   _locationSubscription = location.onLocationChanged.listen(
+//     ((changePositionEvent) {
+//       mapController.animateCamera(
+//         CameraUpdate.newCameraPosition(
+//           CameraPosition(
+//             bearing: 192.8334901395799,
+//             tilt: 0,
+//             zoom: 18,
+//             target: LatLng(
+//               changePositionEvent.latitude!,
+//               changePositionEvent.longitude!,
+//             ),
+//           ),
+//         ),
+//       );
+//     }),
+//   );
+// }
