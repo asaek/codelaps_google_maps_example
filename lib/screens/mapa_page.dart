@@ -1,12 +1,17 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:ejemplo_google_maps/Providers/providers.dart';
+import 'package:ejemplo_google_maps/screens/screens.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
 import 'package:provider/provider.dart';
 
 import '/models/locations.dart' as locations;
+import 'dart:ui' as ui;
 
 class MapaScreen extends StatefulWidget {
   const MapaScreen({Key? key}) : super(key: key);
@@ -25,23 +30,64 @@ class _MapaScreenState extends State<MapaScreen> {
 
   final Map<String, Marker> _markers = {};
 
+  // Future<Uint8List> getMarker() async {
+  //   ByteData byteData = await DefaultAssetBundle.of(context)
+  //       .load('assets/markerPersonalisado.png');
+  //   return byteData.buffer.asUint8List();
+  // }
+
+  Future<Uint8List> getMarkerCustom() async {
+    ByteData data = await rootBundle.load('assets/markerPersonalisado.png');
+    ui.Codec codec = await ui.instantiateImageCodec(data.buffer.asUint8List(),
+        targetWidth: 100);
+    ui.FrameInfo fi = await codec.getNextFrame();
+    return (await fi.image.toByteData(format: ui.ImageByteFormat.png))!
+        .buffer
+        .asUint8List();
+
+    // Otra manera de treaer la imagen del marcador personalizada
+    // ByteData byteData = await DefaultAssetBundle.of(context)
+    //     .load('assets/markerPersonalisado.png');
+    // return byteData.buffer.asUint8List();
+  }
+
   Future<void> _onMapCreated(GoogleMapController controller) async {
     final googleOffices = await locations.getGoogleOffices();
     mapController = controller;
 
+    Uint8List markerData = await getMarkerCustom();
+
+    // BitmapDescriptor markerbitmap = await BitmapDescriptor.fromAssetImage(
+    //   const ImageConfiguration(size: Size(0.01, 0.01), devicePixelRatio: 0.1),
+    //   "assets/markerPersonalisado.png",
+    // );
+
     //aasolicita la  hubicacionn
     setState(() {
       _markers.clear();
-
       for (final office in googleOffices.offices) {
         final marker = Marker(
           markerId: MarkerId(office.name),
           position: LatLng(office.lat, office.lng),
+          icon: BitmapDescriptor.fromBytes(markerData),
+          // icon: markerbitmap,
           infoWindow: InfoWindow(
             title: office.name,
             snippet: office.address,
             anchor: const Offset(0.5, 0),
-            onTap: () => print('Tocame para que toques a kyary algun dia '),
+            onTap: () {
+              print('Tocame para que toques a kyary algun dia ');
+
+              Provider.of<HubicacionPermisoProvider>(context, listen: false)
+                  .setOfficeSeleccionada = office;
+
+              Navigator.push(
+                context,
+                CupertinoPageRoute(
+                  builder: (BuildContext context) => OfficePage(),
+                ),
+              );
+            },
           ),
         );
         _markers[office.name] = marker;
