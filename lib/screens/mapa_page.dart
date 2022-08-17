@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:clippy_flutter/buttcheek.dart';
+import 'package:custom_info_window/custom_info_window.dart';
 import 'package:ejemplo_google_maps/Providers/providers.dart';
 import 'package:ejemplo_google_maps/screens/screens.dart';
 import 'package:flutter/cupertino.dart';
@@ -23,12 +25,13 @@ class MapaScreen extends StatefulWidget {
 class _MapaScreenState extends State<MapaScreen> {
   StreamSubscription? _locationSubscription;
   late GoogleMapController mapController;
-  Location _location = Location();
+  final Location _location = Location();
   static LatLng? _posicionInicial;
 
-  static CameraPosition? initialLocation;
-
   final Map<String, Marker> _markers = {};
+
+  final CustomInfoWindowController _customInfoWindowController =
+      CustomInfoWindowController();
 
   // Future<Uint8List> getMarker() async {
   //   ByteData byteData = await DefaultAssetBundle.of(context)
@@ -37,6 +40,7 @@ class _MapaScreenState extends State<MapaScreen> {
   // }
 
   Future<Uint8List> getMarkerCustom() async {
+    // La mejor forma para hacer el marcador
     ByteData data = await rootBundle.load('assets/markerPersonalisado.png');
     ui.Codec codec = await ui.instantiateImageCodec(data.buffer.asUint8List(),
         targetWidth: 100);
@@ -54,7 +58,7 @@ class _MapaScreenState extends State<MapaScreen> {
   Future<void> _onMapCreated(GoogleMapController controller) async {
     final googleOffices = await locations.getGoogleOffices();
     mapController = controller;
-
+    _customInfoWindowController.googleMapController = controller;
     Uint8List markerData = await getMarkerCustom();
 
     // BitmapDescriptor markerbitmap = await BitmapDescriptor.fromAssetImage(
@@ -71,24 +75,30 @@ class _MapaScreenState extends State<MapaScreen> {
           position: LatLng(office.lat, office.lng),
           icon: BitmapDescriptor.fromBytes(markerData),
           // icon: markerbitmap,
-          infoWindow: InfoWindow(
-            title: office.name,
-            snippet: office.address,
-            anchor: const Offset(0.5, 0),
-            onTap: () {
-              print('Tocame para que toques a kyary algun dia ');
+          // infoWindow: InfoWindow(
+          //   title: office.name,
+          //   snippet: office.address,
+          //   anchor: const Offset(0.5, 0),
+          //   onTap: () {
+          //     print('Tocame para que toques a kyary algun dia ');
 
-              Provider.of<HubicacionPermisoProvider>(context, listen: false)
-                  .setOfficeSeleccionada = office;
+          //     Provider.of<HubicacionPermisoProvider>(context, listen: false)
+          //         .setOfficeSeleccionada = office;
 
-              Navigator.push(
-                context,
-                CupertinoPageRoute(
-                  builder: (BuildContext context) => OfficePage(),
-                ),
-              );
-            },
-          ),
+          //     Navigator.push(
+          //       context,
+          //       CupertinoPageRoute(
+          //         builder: (BuildContext context) => OfficePage(),
+          //       ),
+          //     );
+          //   },
+          // ),
+          onTap: () {
+            _customInfoWindowController.addInfoWindow!(
+              MarcadorPersonalizado(office: office),
+              LatLng(office.lat, office.lng),
+            );
+          },
         );
         _markers[office.name] = marker;
       }
@@ -136,6 +146,7 @@ class _MapaScreenState extends State<MapaScreen> {
     if (_locationSubscription != null) {
       _locationSubscription?.cancel();
     }
+    _customInfoWindowController.dispose();
     super.dispose();
   }
 
@@ -215,17 +226,33 @@ class _MapaScreenState extends State<MapaScreen> {
                 ],
               ),
             )
-          : GoogleMap(
-              onMapCreated: _onMapCreated,
-              initialCameraPosition: CameraPosition(
-                target: _posicionInicial!,
-                zoom: 18,
-              ),
-              markers: _markers.values.toSet(),
-              compassEnabled: true,
-              mapType: MapType.normal,
-              myLocationEnabled: true,
-              // myLocationButtonEnabled: true,
+          : Stack(
+              children: [
+                GoogleMap(
+                  onMapCreated: _onMapCreated,
+                  initialCameraPosition: CameraPosition(
+                    target: _posicionInicial!,
+                    zoom: 18,
+                  ),
+                  markers: _markers.values.toSet(),
+                  compassEnabled: true,
+                  mapType: MapType.normal,
+                  myLocationEnabled: true,
+                  myLocationButtonEnabled: true,
+                  onTap: (position) {
+                    _customInfoWindowController.hideInfoWindow!();
+                  },
+                  onCameraMove: (position) {
+                    _customInfoWindowController.onCameraMove!();
+                  },
+                ),
+                CustomInfoWindow(
+                  controller: _customInfoWindowController,
+                  height: 220,
+                  width: 300,
+                  offset: 40,
+                ),
+              ],
             ),
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(right: 50),
@@ -261,8 +288,101 @@ class _MapaScreenState extends State<MapaScreen> {
   }
 }
 
+class MarcadorPersonalizado extends StatelessWidget {
+  final locations.Office office;
 
+  const MarcadorPersonalizado({
+    Key? key,
+    required this.office,
+  });
 
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 5),
+      child: ButtCheek(
+        height: 40,
+        child: Container(
+          width: 200,
+          height: 250,
+          alignment: Alignment.topCenter,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8, left: 8),
+                    child: Image.network(
+                      office.image,
+                      width: 120,
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      // mainAxisSize: MainAxisSize.min,
+                      // mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          office.name,
+                          style: const TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 5),
+                          child: Text(
+                            office.phone,
+                            style: const TextStyle(
+                                fontSize: 15, fontWeight: FontWeight.w300),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      office.address,
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w300),
+                    ),
+                    GestureDetector(
+                      child: const Icon(
+                        Icons.chevron_right,
+                        size: 50,
+                      ),
+                      onTap: () {
+                        Provider.of<HubicacionPermisoProvider>(context,
+                                listen: false)
+                            .setOfficeSeleccionada = office;
+
+                        Navigator.push(
+                          context,
+                          CupertinoPageRoute(
+                            builder: (BuildContext context) => OfficePage(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 // getLocationPermission() async {
 //   Location location = Location();
