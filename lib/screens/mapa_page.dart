@@ -55,10 +55,13 @@ class _MapaScreenState extends State<MapaScreen> {
     // return byteData.buffer.asUint8List();
   }
 
+  // No tiene mucho sentido crear este metodo tal ves sea por el estado del widget googlemaps para inicializar algo
+  // mas aun no se para que se hizo asi ya que se puede hacer de otras formas lo unico util es para asignar el controller
   Future<void> _onMapCreated(GoogleMapController controller) async {
     final googleOffices = await locations.getGoogleOffices();
     mapController = controller;
     _customInfoWindowController.googleMapController = controller;
+
     Uint8List markerData = await getMarkerCustom();
 
     // BitmapDescriptor markerbitmap = await BitmapDescriptor.fromAssetImage(
@@ -238,7 +241,7 @@ class _MapaScreenState extends State<MapaScreen> {
                   compassEnabled: true,
                   mapType: MapType.normal,
                   myLocationEnabled: true,
-                  myLocationButtonEnabled: true,
+                  myLocationButtonEnabled: false,
                   onTap: (position) {
                     _customInfoWindowController.hideInfoWindow!();
                   },
@@ -383,18 +386,3 @@ class MarcadorPersonalizado extends StatelessWidget {
     );
   }
 }
-
-// getLocationPermission() async {
-//   Location location = Location();
-//   try {
-//     location.requestPermission(); //to lunch location permission popup
-//   } on PlatformException catch (e) {
-//     if (e.code == 'PERMISSION_DENIED') {
-//       print('-----------------------------------------Permission denied');
-//     }
-//   }
-// }
-
-// Future<void> requestPermissionPositionGPS() async {
-//   await Permission.location.request();
-// }
